@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import GlobalLayoutWrapper from "../Components/GlobalLayoutWrapper.jsx";
+import GlobalLayoutWrapper from "../components/GlobalLayoutWrapper.jsx";
 
 const loadPlayed = () => JSON.parse(localStorage.getItem("playedGames")) || [];
 const savePlayed = (arr) => localStorage.setItem("playedGames", JSON.stringify(arr));
