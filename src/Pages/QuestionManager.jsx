@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import AudioTrimmer from "./AudioTrimmer";
 
 export default function QuestionManager() {
   const [games, setGames] = useState([]);
@@ -7,6 +8,10 @@ export default function QuestionManager() {
   const [questionInput, setQuestionInput] = useState("");
   const [answerInput, setAnswerInput] = useState("");
   const [newGameInput, setNewGameInput] = useState("");
+
+  const [trimmedAudioUrl, setTrimmedAudioUrl] = useState("");
+  const [audioStart, setAudioStart] = useState(0);
+  const [audioEnd, setAudioEnd] = useState(0);
 
   const navigate = useNavigate();
 
@@ -28,7 +33,6 @@ export default function QuestionManager() {
     const updatedGames = [...games, newGame];
     saveGames(updatedGames);
 
-    // Add to originalGames (used by the wheel)
     const originalGames = JSON.parse(localStorage.getItem("originalGames")) || [];
     const updatedOriginalGames = [...originalGames, { name }];
     localStorage.setItem("originalGames", JSON.stringify(updatedOriginalGames));
@@ -42,28 +46,40 @@ export default function QuestionManager() {
     saveGames(updated);
     if (selectedGame === name) setSelectedGame("");
 
-    // Remove from originalGames too
     const originalGames = JSON.parse(localStorage.getItem("originalGames")) || [];
     const updatedOriginalGames = originalGames.filter((g) => g.name !== name);
     localStorage.setItem("originalGames", JSON.stringify(updatedOriginalGames));
   };
 
+  const handleTrimmedAudio = ({ blobUrl, startTime, endTime }) => {
+    setTrimmedAudioUrl(blobUrl);
+    setAudioStart(startTime);
+    setAudioEnd(endTime);
+  };
+
   const addQuestion = () => {
     if (!selectedGame || !questionInput.trim() || !answerInput.trim()) return;
+
+    const newQuestion = {
+      question: questionInput.trim(),
+      answer: answerInput.trim(),
+      audioUrl: trimmedAudioUrl,
+      startTime: audioStart,
+      endTime: audioEnd,
+    };
+
     const updated = games.map((g) =>
       g.name === selectedGame
-        ? {
-            ...g,
-            questions: [...(g.questions || []), {
-              question: questionInput.trim(),
-              answer: answerInput.trim(),
-            }],
-          }
+        ? { ...g, questions: [...(g.questions || []), newQuestion] }
         : g
     );
     saveGames(updated);
+
     setQuestionInput("");
     setAnswerInput("");
+    setTrimmedAudioUrl("");
+    setAudioStart(0);
+    setAudioEnd(0);
   };
 
   const deleteQuestion = (qIndex) => {
@@ -92,16 +108,7 @@ export default function QuestionManager() {
   const selected = games.find((g) => g.name === selectedGame);
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#000",
-        color: "#fff",
-        padding: "2rem",
-        fontFamily: "Arial, sans-serif",
-      }}
-    >
-      {/* Back Button */}
+    <div style={{ minHeight: "100vh", backgroundColor: "#000", color: "#fff", padding: "2rem", fontFamily: "Arial, sans-serif" }}>
       <div style={{ marginBottom: "2rem" }}>
         <button
           onClick={() => navigate("/play")}
@@ -117,9 +124,7 @@ export default function QuestionManager() {
         </button>
       </div>
 
-      <h1 style={{ fontSize: "2rem", marginBottom: "1.5rem", color: "#0ff" }}>
-        🎮 Question Manager
-      </h1>
+      <h1 style={{ fontSize: "2rem", marginBottom: "1.5rem", color: "#0ff" }}>🎮 Question Manager</h1>
 
       {/* Add New Game */}
       <div style={{ marginBottom: "2rem" }}>
@@ -128,22 +133,11 @@ export default function QuestionManager() {
           value={newGameInput}
           onChange={(e) => setNewGameInput(e.target.value)}
           placeholder="New Game Name"
-          style={{
-            padding: "0.5rem",
-            fontSize: "1rem",
-            marginRight: "1rem",
-            width: "250px",
-          }}
+          style={{ padding: "0.5rem", fontSize: "1rem", marginRight: "1rem", width: "250px" }}
         />
         <button
           onClick={addGame}
-          style={{
-            padding: "0.5rem 1rem",
-            fontSize: "1rem",
-            backgroundColor: "#0f0",
-            color: "#000",
-            borderRadius: "4px",
-          }}
+          style={{ padding: "0.5rem 1rem", fontSize: "1rem", backgroundColor: "#0f0", color: "#000", borderRadius: "4px" }}
         >
           ➕ Add Game
         </button>
@@ -159,22 +153,13 @@ export default function QuestionManager() {
         >
           <option value="">-- Choose Game --</option>
           {games.map((game, i) => (
-            <option key={i} value={game.name}>
-              {`${i + 1}. ${game.name}`}
-            </option>
+            <option key={i} value={game.name}>{`${i + 1}. ${game.name}`}</option>
           ))}
         </select>
         {selectedGame && (
           <button
             onClick={() => deleteGame(selectedGame)}
-            style={{
-              marginLeft: "1rem",
-              backgroundColor: "red",
-              color: "#fff",
-              padding: "0.5rem 1rem",
-              borderRadius: "4px",
-              fontSize: "0.9rem",
-            }}
+            style={{ marginLeft: "1rem", backgroundColor: "red", color: "#fff", padding: "0.5rem 1rem", borderRadius: "4px", fontSize: "0.9rem" }}
           >
             🗑️ Delete Game
           </button>
@@ -183,40 +168,16 @@ export default function QuestionManager() {
 
       {/* Add Question */}
       {selectedGame && (
-        <div style={{ marginBottom: "2rem" }}>
-          <input
-            type="text"
-            value={questionInput}
-            onChange={(e) => setQuestionInput(e.target.value)}
-            placeholder="Enter question"
-            style={{
-              padding: "0.5rem",
-              marginRight: "1rem",
-              fontSize: "1rem",
-              width: "40%",
-            }}
-          />
-          <input
-            type="text"
-            value={answerInput}
-            onChange={(e) => setAnswerInput(e.target.value)}
-            placeholder="Enter answer"
-            style={{
-              padding: "0.5rem",
-              marginRight: "1rem",
-              fontSize: "1rem",
-              width: "40%",
-            }}
-          />
+        <div style={{ marginBottom: "2rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <input type="text" value={questionInput} onChange={(e) => setQuestionInput(e.target.value)} placeholder="Enter question" style={{ padding: "0.5rem", fontSize: "1rem", width: "100%" }} />
+          <input type="text" value={answerInput} onChange={(e) => setAnswerInput(e.target.value)} placeholder="Enter answer" style={{ padding: "0.5rem", fontSize: "1rem", width: "100%" }} />
+          
+          {/* Audio Trimmer */}
+          <AudioTrimmer onTrimmed={handleTrimmedAudio} />
+
           <button
             onClick={addQuestion}
-            style={{
-              padding: "0.5rem 1rem",
-              fontSize: "1rem",
-              backgroundColor: "green",
-              color: "white",
-              borderRadius: "4px",
-            }}
+            style={{ padding: "0.5rem 1rem", fontSize: "1rem", backgroundColor: "green", color: "white", borderRadius: "4px" }}
           >
             ➕ Add Question
           </button>
@@ -226,45 +187,46 @@ export default function QuestionManager() {
       {/* Question List */}
       {selected && selected.questions?.length > 0 && (
         <div>
-          <h2 style={{ fontSize: "1.5rem", marginBottom: "1rem" }}>
-            {selected.questions.length} Questions in "{selected.name}"
-          </h2>
+          <h2 style={{ fontSize: "1.5rem", marginBottom: "1rem" }}>{selected.questions.length} Questions in "{selected.name}"</h2>
           <ul style={{ listStyle: "none", padding: 0 }}>
             {selected.questions.map((q, i) => (
-              <li
-                key={i}
-                style={{
-                  backgroundColor: "#111",
-                  marginBottom: "1rem",
-                  padding: "1rem",
-                  borderRadius: "8px",
-                }}
-              >
-                <strong style={{ display: "block", marginBottom: "0.5rem" }}>
-                  #{i + 1}
-                </strong>
+              <li key={i} style={{ backgroundColor: "#111", marginBottom: "1rem", padding: "1rem", borderRadius: "8px" }}>
+                <strong style={{ display: "block", marginBottom: "0.5rem" }}>#{i + 1}</strong>
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                  <input
-                    type="text"
-                    value={q.question}
-                    onChange={(e) => editQuestion(i, "question", e.target.value)}
-                    style={{ fontSize: "1rem", padding: "0.5rem" }}
-                  />
-                  <input
-                    type="text"
-                    value={q.answer}
-                    onChange={(e) => editQuestion(i, "answer", e.target.value)}
-                    style={{ fontSize: "1rem", padding: "0.5rem" }}
-                  />
+                  <input type="text" value={q.question} onChange={(e) => editQuestion(i, "question", e.target.value)} style={{ fontSize: "1rem", padding: "0.5rem" }} />
+                  <input type="text" value={q.answer} onChange={(e) => editQuestion(i, "answer", e.target.value)} style={{ fontSize: "1rem", padding: "0.5rem" }} />
+                  
+                  {q.audioUrl && (
+                    <button
+                      onClick={() => {
+                        const audio = new Audio(q.audioUrl);
+                        audio.currentTime = q.startTime;
+                        audio.play();
+
+                        const stopTime = () => {
+                          if (audio.currentTime >= q.endTime) {
+                            audio.pause();
+                          } else {
+                            requestAnimationFrame(stopTime);
+                          }
+                        };
+                        stopTime();
+                      }}
+                      style={{
+                        backgroundColor: "#0ff",
+                        color: "#000",
+                        padding: "0.5rem 1rem",
+                        marginTop: "0.5rem",
+                        borderRadius: "4px",
+                      }}
+                    >
+                      ▶️ Play Trimmed Audio
+                    </button>
+                  )}
+
                   <button
                     onClick={() => deleteQuestion(i)}
-                    style={{
-                      backgroundColor: "red",
-                      color: "white",
-                      padding: "0.5rem",
-                      borderRadius: "4px",
-                      alignSelf: "flex-start",
-                    }}
+                    style={{ backgroundColor: "red", color: "white", padding: "0.5rem", borderRadius: "4px", alignSelf: "flex-start" }}
                   >
                     ❌ Delete Question
                   </button>

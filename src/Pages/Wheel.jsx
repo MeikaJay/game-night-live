@@ -1,7 +1,14 @@
-
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import GlobalLayoutWrapper from "../Components/GlobalLayoutWrapper.jsx";
+
+const loadPlayed = () => JSON.parse(localStorage.getItem("playedGames")) || [];
+const savePlayed = (arr) => localStorage.setItem("playedGames", JSON.stringify(arr));
+const loadUnplayedGameNames = () => {
+  const original = JSON.parse(localStorage.getItem("originalGames")) || [];
+  const played = loadPlayed();
+  return original.map((g) => g.name).filter((name) => !played.includes(name));
+};
 
 export default function Wheel() {
   const canvasRef = useRef(null);
@@ -16,24 +23,25 @@ export default function Wheel() {
   const [showPopup, setShowPopup] = useState(false);
 
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem("originalGames")) || [];
-    setGames(stored.map((g) => g.name));
+    setGames(loadUnplayedGameNames());
   }, []);
 
   useEffect(() => {
-    drawWheel(rotation);
+    if (games.length > 0) drawWheel(rotation);
   }, [games, rotation]);
 
   const drawWheel = (angle = 0) => {
     const canvas = canvasRef.current;
+    if (!canvas || games.length === 0) return;
     const ctx = canvas.getContext("2d");
     const size = 500;
-    canvas.width = size;
-    canvas.height = size;
-
     const center = size / 2;
     const radius = center - 10;
     const angleStep = (2 * Math.PI) / games.length;
+    const colors = ["#e74c3c", "#3498db", "#2ecc71", "#f1c40f"];
+
+    canvas.width = size;
+    canvas.height = size;
 
     ctx.clearRect(0, 0, size, size);
     ctx.save();
@@ -44,32 +52,36 @@ export default function Wheel() {
     games.forEach((game, i) => {
       const start = i * angleStep;
       const end = start + angleStep;
+
       ctx.beginPath();
       ctx.moveTo(center, center);
       ctx.arc(center, center, radius, start, end);
-      ctx.fillStyle = i % 2 === 0 ? "#3498db" : "#2ecc71";
+      ctx.closePath();
+      ctx.fillStyle = colors[i % colors.length];
       ctx.fill();
-      ctx.strokeStyle = "#fff";
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
       ctx.stroke();
 
       ctx.save();
       ctx.translate(center, center);
       ctx.rotate(start + angleStep / 2);
       ctx.textAlign = "right";
-      ctx.fillStyle = "#fff";
-      ctx.font = "14px Arial";
-      ctx.fillText(game, radius - 10, 0);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 16px Arial";
+      ctx.fillText(game, radius - 20, 0);
       ctx.restore();
     });
 
     ctx.restore();
 
-    // Draw arrow at 3 o’clock
+    // Arrow at 12 o’clock
     ctx.beginPath();
-    ctx.moveTo(size - 10, center);
-    ctx.lineTo(size - 30, center - 10);
-    ctx.lineTo(size - 30, center + 10);
-    ctx.fillStyle = "#fff";
+    ctx.moveTo(center, 5);
+    ctx.lineTo(center - 15, 35);
+    ctx.lineTo(center + 15, 35);
+    ctx.closePath();
+    ctx.fillStyle = "#ffffff";
     ctx.fill();
   };
 
@@ -90,20 +102,20 @@ export default function Wheel() {
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
       const easeOut = 1 - Math.pow(1 - progress, 3);
-      const currentRotation = endAngle * easeOut;
+      const current = endAngle * easeOut;
 
-      setRotation(currentRotation);
+      setRotation(current);
 
       if (progress < 1) {
         requestAnimationFrame(animate);
       } else {
-        const anglePerSlice = 360 / games.length;
-        const finalRotation = currentRotation % 360;
-        const adjustedAngle = (360 - finalRotation) % 360;
-        const index = Math.floor(adjustedAngle / anglePerSlice) % games.length;
+        const perSlice = 360 / games.length;
+        const finalRotation = current % 360;
+        const adjustedAngle = (270 - finalRotation + 360) % 360; // Arrow at 12 o'clock
+        const index = Math.floor(adjustedAngle / perSlice) % games.length;
+        const chosen = games[index];
 
-        const selected = games[index];
-        setSelectedGame(selected);
+        setSelectedGame(chosen);
         setSpinning(false);
         setShowPopup(true);
 
@@ -118,80 +130,170 @@ export default function Wheel() {
 
   const removeSelectedGame = () => {
     if (!selectedGame) return;
-    const original = JSON.parse(localStorage.getItem("originalGames")) || [];
-    const updated = original.filter((g) => g.name !== selectedGame);
-    localStorage.setItem("originalGames", JSON.stringify(updated));
-    setGames(updated.map((g) => g.name));
+    const played = loadPlayed();
+    if (!played.includes(selectedGame)) {
+      played.push(selectedGame);
+      savePlayed(played);
+    }
+    setGames(loadUnplayedGameNames());
     setSelectedGame("");
     setShowPopup(false);
   };
 
   const resetWheel = () => {
-    const original = JSON.parse(localStorage.getItem("originalGames")) || [];
-    const gameNames = original.map((g) => g.name);
-    setGames(gameNames);
+    localStorage.removeItem("playedGames");
+    setGames(loadUnplayedGameNames());
     setSelectedGame("");
     setShowPopup(false);
   };
 
   return (
     <GlobalLayoutWrapper>
-      <div
-        className="w-screen h-screen flex flex-col justify-center items-center text-center px-4"
-        style={{ backgroundColor: "#000" }}
-      >
-        <h1 className="text-3xl font-bold text-white mb-2">🎡 Game Night Wheel</h1>
-        <p className="text-white mb-4 text-sm">Remaining Games: {games.length}</p>
+      <div style={{ width: "100vw", height: "100vh", backgroundColor: "black", color: "white", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        {/* TOP TITLE BAR */}
+        <div style={{ width: "100%", padding: "20px 0", textAlign: "center", backgroundColor: "#111" }}>
+          <h1 style={{ fontSize: "36px", fontWeight: "bold", margin: 0 }}>🎮 Game Night Live Wheel</h1>
+        </div>
 
-        <canvas
-          ref={canvasRef}
-          className="rounded shadow-lg border-4 border-white mb-4"
-          style={{ width: "500px", height: "500px" }}
-        />
+        {/* MAIN SECTION */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "row" }}>
+          {/* LEFT: Wheel */}
+          <div style={{ width: "50%", display: "flex", justifyContent: "center", alignItems: "center" }}>
+            <canvas
+              ref={canvasRef}
+              style={{
+                width: "500px",
+                height: "500px",
+                borderRadius: "50%",
+                border: "6px solid white",
+                boxShadow: "0 0 30px rgba(255,255,255,0.3)",
+              }}
+            />
+          </div>
 
+          {/* RIGHT: Controls */}
+          <div style={{ width: "50%", padding: "40px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+            <p style={{ color: "#ccc", marginBottom: "24px", fontSize: "16px" }}>
+              Remaining Games: {games.length}
+            </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px", width: "300px" }}>
+              <button
+                onClick={spinWheel}
+                disabled={spinning || games.length === 0}
+                style={{
+                  padding: "10px",
+                  backgroundColor: "#6b21a8",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "5px",
+                }}
+              >
+                🌀 Spin
+              </button>
+              <button
+                onClick={removeSelectedGame}
+                disabled={!selectedGame}
+                style={{
+                  padding: "10px",
+                  backgroundColor: "#dc2626",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "5px",
+                }}
+              >
+                ❌ Remove Selected
+              </button>
+              <button
+                onClick={resetWheel}
+                style={{
+                  padding: "10px",
+                  backgroundColor: "#4b5563",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "5px",
+                }}
+              >
+                🔁 Reset Wheel
+              </button>
+              <button
+                onClick={() => navigate("/play")}
+                style={{
+                  padding: "10px",
+                  backgroundColor: "#2563eb",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "5px",
+                }}
+              >
+                🎮 Back to Game
+              </button>
+            </div>
+
+            {selectedGame && (
+              <div style={{ marginTop: "24px" }}>
+                <p style={{ color: "#22c55e", marginBottom: "4px" }}>🎯 Selected Game:</p>
+                <p style={{ color: "#facc15", fontSize: "20px", fontWeight: "bold" }}>{selectedGame}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* AUDIO */}
         <audio ref={spinSound} src="/sounds/spin.mp3" preload="auto" />
         <audio ref={dingSound} src="/sounds/ding.mp3" preload="auto" />
 
-        <div className="flex flex-wrap gap-4 justify-center">
-          <button
-            onClick={spinWheel}
-            disabled={spinning || games.length === 0}
-            className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded"
-          >
-            🌀 Spin
-          </button>
-          <button
-            onClick={removeSelectedGame}
-            disabled={!selectedGame}
-            className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded"
-          >
-            ❌ Remove Selected
-          </button>
-          <button
-            onClick={resetWheel}
-            className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded"
-          >
-            🔁 Reset Wheel
-          </button>
-          <button
-            onClick={() => navigate("/play")}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded"
-          >
-            🎮 Back to Game
-          </button>
-        </div>
-
+        {/* POPUP */}
         {showPopup && selectedGame && (
-          <div className="fixed inset-0 bg-black bg-opacity-90 flex flex-col items-center justify-center z-50 text-center p-6">
-            <h2 className="text-6xl font-extrabold text-yellow-300 mb-6 animate-bounce">
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              width: "100vw",
+              height: "100vh",
+              backgroundColor: "rgba(0,0,0,0.9)",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center",
+              zIndex: 9999,
+              textAlign: "center",
+              padding: "24px",
+            }}
+          >
+            <h2 style={{ fontSize: "64px", fontWeight: "bold", color: "#facc15", marginBottom: "32px" }}>
               🎯 {selectedGame}
             </h2>
-            <button
-              onClick={() => navigate("/play")}
-              className="bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded text-xl"
-            >
-              ▶️ Start This Game
-            </button>
+
+            <div style={{ display: "flex", gap: "20px" }}>
+              <button
+                onClick={removeSelectedGame}
+                style={{
+                  padding: "16px 24px",
+                  backgroundColor: "#dc2626",
+                  color: "white",
+                  fontSize: "18px",
+                  borderRadius: "6px",
+                  border: "none",
+                }}
+              >
+                ✅ Remove Game
+              </button>
+              <button
+                onClick={() => navigate("/play")}
+                style={{
+                  padding: "16px 24px",
+                  backgroundColor: "#16a34a",
+                  color: "white",
+                  fontSize: "18px",
+                  borderRadius: "6px",
+                  border: "none",
+                }}
+              >
+                ▶️ Start This Game
+              </button>
+            </div>
           </div>
         )}
       </div>

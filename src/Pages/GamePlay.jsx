@@ -41,6 +41,18 @@ export default function GamePlay() {
     const storedContestant = localStorage.getItem("activeContestant");
     if (storedGame) setSelectedGame(storedGame);
     if (storedContestant) setActiveContestant(storedContestant);
+
+    // ✅ Auto-refresh score when user returns to this screen
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        const freshScores = JSON.parse(localStorage.getItem("scores")) || {};
+        setScore(freshScores);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   const saveScores = () => {
