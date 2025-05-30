@@ -1,5 +1,5 @@
 <h1 className="text-4xl text-blue-600 font-bold text-center mb-6">TAILWIND IS WORKING</h1>
-
+import GamesPage from "./Pages/GamesPage";
 import React from "react";
 import AudioTrimmer from "./Pages/AudioTrimmer";
 
@@ -24,6 +24,7 @@ function App() {
     };
     stopTime();
   };
+<Route path="/games" element={<GamesPage />} />
 
   return (
     <div style={{ backgroundColor: "#000", minHeight: "100vh", padding: "2rem" }}>
