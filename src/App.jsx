@@ -1,3 +1,5 @@
+<h1 className="text-4xl text-blue-600 font-bold text-center mb-6">TAILWIND IS WORKING</h1>
+
 import React from "react";
 import AudioTrimmer from "./Pages/AudioTrimmer";
 
