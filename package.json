@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@emailjs/browser": "^4.4.1",
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@supabase/supabase-js": "^2.49.4",
     "confetti": "^2.0.6",

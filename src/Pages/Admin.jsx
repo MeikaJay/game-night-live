@@ -1,6 +1,50 @@
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
 
 export default function Admin() {
+  const [authenticated, setAuthenticated] = useState(false);
+  const [password, setPassword] = useState("");
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (localStorage.getItem("authenticated") === "true") {
+      setAuthenticated(true);
+    }
+  }, []);
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (password === "letmein") {
+      localStorage.setItem("authenticated", "true");
+      setAuthenticated(true);
+    } else {
+      alert("Incorrect password.");
+    }
+  };
+
+  if (!authenticated) {
+    return (
+      <div className="p-10 text-center">
+        <h2 className="text-3xl font-bold mb-4">🎤 Host Login - Game Night Live</h2>
+        <form onSubmit={handleLogin}>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Enter Host Password"
+            className="p-3 rounded border border-gray-300 w-64"
+          />
+          <br /><br />
+          <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded-xl hover:bg-blue-700">
+            Login
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  // 👇 Your original Admin layout starts here
   return (
     <div className="p-10 text-center">
       <h1 className="text-4xl font-bold mb-6">🎤 Host Dashboard - Game Night Live</h1>
