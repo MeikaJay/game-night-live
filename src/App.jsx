@@ -1,36 +1,47 @@
-<h1 className="text-4xl text-blue-600 font-bold text-center mb-6">TAILWIND IS WORKING</h1>
+import React, { useState, useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import LoginPage from "./Pages/LoginPage";
 import GamesPage from "./Pages/GamesPage";
-import React from "react";
-import AudioTrimmer from "./Pages/AudioTrimmer";
+import GamePlay from "./Pages/GamePlay"; // The host page
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
-  const handleTrimmedAudio = ({ file, startTime, endTime, blobUrl }) => {
-    console.log("🎵 Trimmed Audio Info:");
-    console.log("File:", file);
-    console.log("Start:", startTime);
-    console.log("End:", endTime);
-    console.log("Blob URL:", blobUrl);
-    const audio = new Audio(blobUrl);
-    audio.currentTime = startTime;
-    audio.play();
+  const [authenticated, setAuthenticated] = useState(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
-    // Auto-stop after the selected time
-    const stopTime = () => {
-      if (audio.currentTime >= endTime) {
-        audio.pause();
-      } else {
-        requestAnimationFrame(stopTime);
-      }
-    };
-    stopTime();
+  useEffect(() => {
+    const loggedIn = localStorage.getItem("authenticated");
+    setAuthenticated(loggedIn === "true");
+    setCheckingAuth(false);
+  }, []);
+
+  const handleLoginSuccess = () => {
+    localStorage.setItem("authenticated", "true");
+    setAuthenticated(true);
   };
-<Route path="/games" element={<GamesPage />} />
+
+  if (checkingAuth) {
+    return <div style={{ color: "white", padding: "2rem" }}>Loading...</div>;
+  }
 
   return (
-    <div style={{ backgroundColor: "#000", minHeight: "100vh", padding: "2rem" }}>
-      <h1 style={{ color: "#0ff" }}>🎧 Waveform Audio Trimmer</h1>
-      <AudioTrimmer onTrimmed={handleTrimmedAudio} />
-    </div>
+    <Router>
+      <Routes>
+        <Route
+          path="/login"
+          element={<LoginPage setAuthenticated={handleLoginSuccess} />}
+        />
+        <Route path="/games" element={<GamesPage />} />
+        <Route
+          path="/play"
+          element={
+            <ProtectedRoute authenticated={authenticated}>
+              <GamePlay />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </Router>
   );
 }
 

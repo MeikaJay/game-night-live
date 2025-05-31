@@ -1,14 +1,14 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-export default function LoginPage({ setAuthenticated }) {
+export default function LoginPage({ setIsAuthenticated }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleLogin = () => {
     if (password === "Peacelove082420!") {
-      setAuthenticated(); // triggers the App.jsx function
+      setIsAuthenticated(); // This will trigger localStorage + setState from App.jsx
       navigate("/play");
     } else {
       setError("Incorrect password. Try again.");
