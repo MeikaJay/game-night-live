@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import LoginPage from "./Pages/LoginPage";
+import GamePlay from "./Pages/GamePlay";
 import GamesPage from "./Pages/GamesPage";
-import GamePlay from "./Pages/GamePlay"; // The host page
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
@@ -15,7 +15,7 @@ function App() {
     setCheckingAuth(false);
   }, []);
 
-  const handleLoginSuccess = () => {
+  const handleAuth = () => {
     localStorage.setItem("authenticated", "true");
     setAuthenticated(true);
   };
@@ -27,10 +27,7 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route
-          path="/login"
-          element={<LoginPage setAuthenticated={handleLoginSuccess} />}
-        />
+        <Route path="/login" element={<LoginPage setAuthenticated={handleAuth} />} />
         <Route path="/games" element={<GamesPage />} />
         <Route
           path="/play"

@@ -3,6 +3,15 @@ import { useNavigate } from "react-router-dom";
 
 export default function GamePlay() {
   const navigate = useNavigate();
+  const isAuthenticated = localStorage.getItem("authenticated") === "true";
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/login");
+    }
+  }, [isAuthenticated, navigate]);
+
+  if (!isAuthenticated) return null;
 
   const [contestantList, setContestantList] = useState({
     contestant1: "Contestant 1",
@@ -42,7 +51,6 @@ export default function GamePlay() {
     if (storedGame) setSelectedGame(storedGame);
     if (storedContestant) setActiveContestant(storedContestant);
 
-    // ✅ Auto-refresh score when user returns to this screen
     const handleVisibilityChange = () => {
       if (!document.hidden) {
         const freshScores = JSON.parse(localStorage.getItem("scores")) || {};
@@ -104,7 +112,6 @@ export default function GamePlay() {
         textAlign: "center",
       }}
     >
-      {/* Home Button */}
       <button
         onClick={() => navigate("/admin/panel")}
         style={{
@@ -121,7 +128,6 @@ export default function GamePlay() {
         🏠 Home
       </button>
 
-      {/* Scoreboard */}
       <div
         style={{
           display: "flex",
@@ -186,12 +192,10 @@ export default function GamePlay() {
         </div>
       </div>
 
-      {/* Timer */}
       <h1 style={{ fontSize: "2.5rem", color: "cyan", marginBottom: "1rem" }}>
         ⏰ {formatTime(timer)}
       </h1>
 
-      {/* Game Select */}
       <select
         value={selectedGame}
         onChange={(e) => setSelectedGame(e.target.value)}
@@ -205,7 +209,6 @@ export default function GamePlay() {
         ))}
       </select>
 
-      {/* Active Contestant Buttons */}
       <h2 style={{ fontSize: "1.25rem" }}>🎤 Who’s Playing?</h2>
       <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
         {Object.values(contestantList).map((name) => (
@@ -240,7 +243,6 @@ export default function GamePlay() {
         </div>
       )}
 
-      {/* Control Buttons */}
       <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
         <button
           onClick={() => navigate("/wheel")}
